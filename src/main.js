@@ -34,7 +34,7 @@ Apify.main(async () => {
     }
 
     const requestQueue = await Apify.openRequestQueue();
-    const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
+    const requestList = await Apify.openRequestList(null, normalizeUrls(startUrls));
 
     requestList.requests.forEach((req) => {
         req.userData = {

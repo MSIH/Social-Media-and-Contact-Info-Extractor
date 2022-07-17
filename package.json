@@ -9,7 +9,7 @@
     "url": "https://github.com/vdrmota/Social-Media-and-Contact-Info-Extractor"
   },
   "scripts": {
-    "start": "node ./src/main.js",
+    "start": "APIFY_LOCAL_STORAGE_DIR=apify_storage node ./src/main.js",
     "lint": "./node_modules/.bin/eslint ./src",
     "lint:fix": "./node_modules/.bin/eslint ./src --ext .js --fix"
   },
@@ -17,7 +17,7 @@
     "apify": "^2.3.0",
     "extract-domain": "^2.0.6",
     "getdomain": "^1.3.1",
-    "puppeteer": "^10.4.0",
+    "puppeteer": "^13.0.0",
     "request-promise": "^4.2.2",
     "underscore": "^1.9.1"
   },
