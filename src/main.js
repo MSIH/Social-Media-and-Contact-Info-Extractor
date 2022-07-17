@@ -34,7 +34,7 @@ Apify.main(async () => {
     }
 
     const requestQueue = await Apify.openRequestQueue();
-    const requestList = await Apify.openRequestList(null, normalizeUrls(startUrls));
+    const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
 
     requestList.requests.forEach((req) => {
         req.userData = {
@@ -147,5 +147,7 @@ Apify.main(async () => {
     // Run crawler
     log.info(`Starting the crawl...`);
     await crawler.run();
+    const store = await Apify.openKeyValueStore();
+    await store.setValue('SDK_start-urls-REQUEST_LIST_REQUESTS', null);
     log.info(`Crawl finished`);
 });
