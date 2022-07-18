@@ -1,4 +1,3 @@
-const { RequestList } = require('apify');
 const Apify = require('apify');
 const { normalizeUrls } = require('./helpers');
 const helpers = require('./helpers');
