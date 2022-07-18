@@ -1,3 +1,4 @@
+const { RequestList } = require('apify');
 const Apify = require('apify');
 const { normalizeUrls } = require('./helpers');
 const helpers = require('./helpers');
@@ -147,7 +148,8 @@ Apify.main(async () => {
     // Run crawler
     log.info(`Starting the crawl...`);
     await crawler.run();
+    let key = requestList.persistRequestsKey;
     const store = await Apify.openKeyValueStore();
-    await store.setValue('SDK_start-urls-REQUEST_LIST_REQUESTS', null);
+    await store.setValue(key, null);
     log.info(`Crawl finished`);
 });
