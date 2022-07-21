@@ -74,6 +74,10 @@ Apify.main(async () => {
         proxyConfiguration,
         launchContext: {
             useIncognitoPages: true,
+            useChrome: false,
+            launchOptions: {
+                headless: true,
+            }
         },
         browserPoolOptions: {
             useFingerprints: true,
