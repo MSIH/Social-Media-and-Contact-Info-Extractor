@@ -41,6 +41,8 @@ Apify.main(async () => {
         Apify.events.on('migrating', persistRequestsPerStartUrlCounter);
     }
 
+// TODO populate start url with up to 100
+
     const requestQueue = await Apify.openRequestQueue();
     const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
 

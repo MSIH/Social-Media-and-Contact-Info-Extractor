@@ -19,9 +19,32 @@ function uniqueValuesInObjects(obj) {
     );
 }
 
+/
+
 module.exports = {
     // crawlFrames: async (page) => { },
     // getDomain(url) {},
+    getURLSfromDatabase: async (sql) => { 
+        var pool = mysql.createConnection({
+            host: "msih005.local",
+            user: "pricelocal",
+            password: "979901979901",
+            database: "PriceLocal"
+        });
+
+        const poolQuery = util.promisify(pool.query).bind(pool);
+        const poolEnd = util.promisify(pool.end).bind(pool);
+
+        consolelog(sql);
+
+        try {
+            const result = await poolQuery(sql);
+        } catch (err) {
+            throw err;
+        }
+
+        await poolEnd();
+    },
     createDatasetWithDateTitle: async () => {
         // msih start
         // create dataset for data
@@ -35,7 +58,7 @@ module.exports = {
         return await Apify.openDataset(datasetTitle);
         // msih end
     },
-    groupByKeyUniueValuesAndSave: async (items, groupByKeyValue, jsonDataStorage)  => {
+    groupByKeyUniueValuesAndSave: async (items, groupByKeyValue, jsonDataStorage) => {
         const groupByDomain = {}
 
         let groupByKeyData = groupByKey(items, groupByKeyValue);
