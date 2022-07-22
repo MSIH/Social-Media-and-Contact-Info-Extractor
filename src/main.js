@@ -2,6 +2,8 @@ const Apify = require('apify');
 const { object } = require('underscore');
 const { normalizeUrls } = require('./helpers');
 const helpers = require('./helpers');
+const { groupByKeyUniueValuesAndSave } = require('./msih');
+const msih = require('./msih');
 
 const { log } = Apify.utils;
 
@@ -25,14 +27,7 @@ Apify.main(async () => {
 
     // msih start
     // create dataset for data
-    var dt = new Date();
-    const yyyymmddhhmmss = `${dt.getFullYear().toString().padStart(4, '0')}${(dt.getMonth() + 1).toString().padStart(2, '0')}${dt.getDate().toString().padStart(2, '0')}${dt.getHours().toString().padStart(2, '0')}${dt.getMinutes().toString().padStart(2, '0')}${dt.getSeconds().toString().padStart(2, '0')}`;
-
-    log.info(yyyymmddhhmmss);
-    datasetTitle = yyyymmddhhmmss
-
-    // open default dataset
-    let ResultsDataset = await Apify.openDataset(datasetTitle);
+   const resultsDataset = await msih.createDatasetWithDateTitle();
     // msih end
 
     // Object with startUrls as keys and counters as values
@@ -139,8 +134,10 @@ Apify.main(async () => {
             delete result.html;
 
             // Store results
+            // await Apify.pushData(result);
+
             // msih start
-            await ResultsDataset.pushData(result);
+            await resultsDataset.pushData(result);
             // msih end
         },
         handleFailedRequestFunction: async ({ request }) => {
@@ -168,73 +165,14 @@ Apify.main(async () => {
     await crawler.run();
 
     // save results to single json file
-    const { items } = await ResultsDataset.getData();
+    const { items } = await resultsDataset.getData();
     console.info('datasetTitle: ' + datasetTitle);
     const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
     await jsonDataStorage.setValue(datasetTitle + 'raw', items);
 
-    // save unique          
-    var startTime = performance.now()
-    //console.dir(items);
-    const groupByDomain = {}
-    //const result = {};
-    /* for (const record of items) {
-         groupByDomain[record.domain] += record;
-         if (!result[record.domain]) result[record.domain] = [];
-         result[record.domain].push(record);
-     }
- 
-     for (let { domain, ...fields } of items) {
-         result[domain] = result[domain] || [];
-         result[domain].push({ ...fields });
-     }
- 
- 
-     result = items.reduce(function (r, a) {
-         r[a.domain] = r[a.domain] || [];
-         r[a.domain].push(a);
-         return r;
-     }, Object.create(null));
-     */
-    function groupByKey(array, key) {
-        return array
-            .reduce((hash, obj) => {
-                if (obj[key] === undefined) return hash;
-                return Object.assign(hash, { [obj[key]]: (hash[obj[key]] || []).concat(obj) })
-            }, {})
-    }
-    var results2 = groupByKey(items, 'domain')
+    await msih.groupByKeyUniueValuesAndSave(items, 'domain', jsonDataStorage);
 
+    await msih.deleteRequestListAndQueue(requestList, requestQueue);
 
-    function uniqueValuesInObjects(obj) {
-        return Object.fromEntries(
-            [...new Set(obj.flatMap(d => Object.keys(d)))].map(k => [
-                k,
-                [... new Set(obj.flatMap(d => d[k] ? d[k] : null).filter(v => v != null && v != undefined))]
-            ])
-        );
-    }
-
-    for (const key in results2) {
-        //console.log(key,results2[key]);   
-        groupByDomain[key] = uniqueValuesInObjects(results2[key]);
-        console.log(key, groupByDomain[key]);
-    }
-
-
-    //console.dir(results2);
-    var endTime = performance.now()
-
-    console.log(`Finding Unique took ${endTime - startTime} milliseconds`)
-
-
-    await jsonDataStorage.setValue(datasetTitle + "-groupByDomain", groupByDomain);
-
-
-
-    // delete RequestList bin file
-    let key = requestList.persistRequestsKey;
-    const store = await Apify.openKeyValueStore();
-    await store.setValue(key, null);
     log.info(`Crawl finished`);
 });
