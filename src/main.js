@@ -25,12 +25,7 @@ Apify.main(async () => {
         maxRequestsPerStartUrl,
     } = input;
 
-    // msih start
-    // create dataset for data
-    const resultsDataset = await msih.createDatasetWithDateTitle();
-    //let startUrls = await msih.getURLSfromDatabase(5);
-    console.dir(startUrls);
-    // msih end
+
 
     // Object with startUrls as keys and counters as values
     const requestsPerStartUrlCounter = (await Apify.getValue('STATE-REQUESTS-PER-START-URL')) || {};
@@ -44,8 +39,18 @@ Apify.main(async () => {
     }
 
     const requestQueue = await Apify.openRequestQueue();
-   // const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
-    const requestList = await Apify.openRequestList(null, normalizeUrls(startUrls));
+    // const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
+    
+    // msih start
+    // create dataset for data
+    const resultsDataset = await msih.createDatasetWithDateTitle();
+    //console.dir(startUrls);
+    let URLSfromDatabase = startUrls;
+    if (!startUrls) {
+         URLSfromDatabase = await msih.getURLSfromDatabase(3);
+    }
+    const requestList = await Apify.openRequestList(null, URLSfromDatabase);
+    // msih end
 
     requestList.requests.forEach((req) => {
         req.userData = {
@@ -174,9 +179,10 @@ Apify.main(async () => {
     console.info('datasetTitle: ' + datasetTitle);
     const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
     await jsonDataStorage.setValue(datasetTitle + 'raw', items);
-    await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage);
+    let grouppedData = await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage);
+    await msih.updateWebSite(items, 'startUrl');
+    await msih.saveSocial(grouppedData)
+    await msih.getStats(input);
     await msih.deleteRequestListAndQueue(requestList, requestQueue);
-    await msih.updateWebSite(items, 'startUrl',);
-
     log.info(`Crawl finished`);
 });

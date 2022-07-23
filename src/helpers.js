@@ -160,7 +160,7 @@ module.exports = {
 
     normalizeUrls: (urls) => {
         const PROTOCOL_REGEX = /^((.)+:\/\/)/;
-        const BASE_URL_PATTERN = 'http://example.com';
+        const BASE_URL_PATTERN = 'https://example.com';
 
         return urls.map(({ url }) => {
             const urlWithoutProtocol = url.replace(PROTOCOL_REGEX, '');

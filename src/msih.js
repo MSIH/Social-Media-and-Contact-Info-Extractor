@@ -44,9 +44,9 @@ module.exports = {
             password: "979901979901",
             database: "PriceLocal"
         });
-
+        let random = Math.floor(Math.random() * 1234567);
         let sql = "SELECT Website FROM PriceLocal.Vendors \
-            WHERE SocialSearchDate < "+ getDateYYYYMMDD() + " LIMIT " + limitSize;
+            WHERE SocialSearchDate < "+ getDateYYYYMMDD() + " LIMIT " + random + "," + limitSize;
 
         log.info(sql);
 
@@ -144,7 +144,7 @@ module.exports = {
             user: "pricelocal",
             password: "979901979901",
             database: "PriceLocal"
-        });     
+        });
 
         const poolQuery = util.promisify(pool.query).bind(pool);
         const poolEnd = util.promisify(pool.end).bind(pool);
@@ -155,10 +155,10 @@ module.exports = {
         try {
             for (const key in groupByKeyData) {
                 //console.dir(key);
-                let sql = "UPDATE PriceLocal.Vendors SET SocialSearchDate = " + dateYYYYMMMDD + 
-                " WHERE WebSite = '"+ key +"';"
+                let sql = "UPDATE PriceLocal.Vendors SET SocialSearchDate = " + dateYYYYMMMDD +
+                    " WHERE WebSite = '" + key + "';"
 
-                //console.log(sql);
+                console.log(sql);
                 const result = await poolQuery(sql);
                 console.log(result);
             }
@@ -168,7 +168,48 @@ module.exports = {
         await poolEnd();
     },
 
-       
+    saveSocial: async (items) => {
+
+        var pool = mysql.createConnection({
+            host: "msih005.local",
+            user: "pricelocal",
+            password: "979901979901",
+            database: "PriceLocal"
+        });
+
+        const poolQuery = util.promisify(pool.query).bind(pool);
+        const poolEnd = util.promisify(pool.end).bind(pool);
+
+        const dateYYYYMMMDD = getDateYYYYMMDD();
+
+        //console.dir(groupByKeyData);
+        try {
+            for (const webSite in items) {
+                console.dir(webSite);
+                for (const key of ['discords', 'tiktoks', 'youtubes', 'instagrams',
+                    'facebooks', 'linkedIns', 'phones', 'emails']) {
+                    console.dir(key);
+                    for (const data in items[webSite][key]) {
+                        console.dir(items[webSite][key][data]);
+                        let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + items[webSite][key][data] +
+                            "','" + webSite + "');"
+                        
+                        // INSERT INTO `members` (`full_names`,`gender`,`physical_address`,`contact_number`) VALUES ('Leonard Hofstadter','Male','Woodcrest',0845738767);
+
+                        console.log(sql);
+                        const result = await poolQuery(sql);
+                        console.log(result);
+                    }
+                }
+
+            }
+        } catch (err) {
+            throw err;
+        }
+        await poolEnd();
+    },
+
+
     groupByKeyUniueValuesAndSave: async (items, groupByKeyValue, jsonDataStorage) => {
         const groupByDomain = {}
 
@@ -187,18 +228,45 @@ module.exports = {
         //console.log(`Finding Unique took ${endTime - startTime} milliseconds`)
 
         await jsonDataStorage.setValue(datasetTitle + "-groupByDomain", groupByDomain);
-        // return groupByDomain
+        return groupByDomain
     },
 
 
     deleteRequestListAndQueue: async (requestList, requestQueue) => {
         // delete RequestList bin file
-      //  console.log(requestList.persistRequestsKey);
+        //  console.log(requestList.persistRequestsKey);
+        const store = await Apify.openKeyValueStore();
         if (requestList.persistRequestsKey !== undefined) {
-        //    console.log("key is valid");
-            const store = await Apify.openKeyValueStore();
+            //    console.log("key is valid");  
             await store.setValue(requestList.persistRequestsKey, null);
         }
+        await store.setValue("SDK_CRAWLER_STATISTICS_0", null);
+        await store.setValue("SDK_SESSION_POOL_STATE", null);
+        await store.setValue("STATE-REQUESTS-PER-START-URL", null);
         await requestQueue.drop();
+    },
+
+    getStats: async (input) => {
+        const dateYYYYMMMDD = getDateYYYYMMDD();
+
+        getStats = await Apify.getValue('SDK_CRAWLER_STATISTICS_0');
+
+        if (getStats !== null) {
+            getStats.requestMinDurationPerSeconds = (getStats.requestMinDurationMillis / 1000);
+            getStats.requestMaxDurationPerSeconds = (getStats.requestMaxDurationMillis / 1000);
+            getStats.requestAvgFinishedDurationPerSeconds = (getStats.requestAvgFinishedDurationMillis / 1000);
+            getStats.TotalDurationMinutes = (getStats.crawlerRuntimeMillis / 1000 / 60);
+            getStats.TotalDurationHours = (getStats.crawlerRuntimeMillis / 1000 / 60 / 60);
+            getStats.requestPerMinute = getStats.requestsFinishedPerMinute;
+            //getStats.customProxy = customProxy;
+            //getStats.proxyProvider = proxyProvider;
+            getStats.input = input;
+
+            // open perfDataStorage key value store
+            const perfDataStorage = await Apify.openKeyValueStore('perfDataStorage');
+            // save perf data to file named datasetTitle
+            await perfDataStorage.setValue(dateYYYYMMMDD.toString(), { getStats });
+            console.dir(getStats);
+        }
     }
 };
