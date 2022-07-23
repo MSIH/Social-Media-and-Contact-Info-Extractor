@@ -15,7 +15,6 @@ Apify.main(async () => {
     if (!input) throw new Error('There is no input!');
 
     const {
-        startUrls,
         proxyConfig,
         sameDomain,
         maxDepth,
@@ -27,7 +26,9 @@ Apify.main(async () => {
 
     // msih start
     // create dataset for data
-   const resultsDataset = await msih.createDatasetWithDateTitle();
+    const resultsDataset = await msih.createDatasetWithDateTitle();
+    let startUrls = await msih.getURLSfromDatabase();
+    console.dir(startUrls);
     // msih end
 
     // Object with startUrls as keys and counters as values
@@ -140,6 +141,7 @@ Apify.main(async () => {
 
             // msih start
             await resultsDataset.pushData(result);
+            // await msih.getURLSfromDatabase(requestQueue);
             // msih end
         },
         handleFailedRequestFunction: async ({ request }) => {
@@ -171,10 +173,10 @@ Apify.main(async () => {
     console.info('datasetTitle: ' + datasetTitle);
     const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
     await jsonDataStorage.setValue(datasetTitle + 'raw', items);
-
     await msih.groupByKeyUniueValuesAndSave(items, 'domain', jsonDataStorage);
-
     await msih.deleteRequestListAndQueue(requestList, requestQueue);
+
+    await msih.updateWebSite(items, 'domain',);
 
     log.info(`Crawl finished`);
 });
