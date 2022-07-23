@@ -47,7 +47,7 @@ Apify.main(async () => {
     //console.dir(startUrls);
     let URLSfromDatabase = startUrls;
     if (!startUrls) {
-         URLSfromDatabase = await msih.getURLSfromDatabase(30);
+         URLSfromDatabase = await msih.getURLSfromDatabase(3);
     }
     const requestList = await Apify.openRequestList(null, URLSfromDatabase);
     // msih end

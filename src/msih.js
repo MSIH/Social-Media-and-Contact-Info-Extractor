@@ -47,7 +47,7 @@ module.exports = {
         let random = Math.floor(Math.random() * 1234567);
         let sql = "SELECT Website FROM PriceLocal.Vendors \
             WHERE SocialSearchDate < "+ getDateYYYYMMDD() + " LIMIT " + random + "," + limitSize;
-
+// NOT Website = 'none' AND 
         log.info(sql);
 
         const poolQuery = util.promisify(pool.query).bind(pool);
@@ -189,11 +189,18 @@ module.exports = {
                 for (const key of ['discords', 'tiktoks', 'youtubes', 'instagrams',
                     'facebooks', 'linkedIns', 'phones', 'emails']) {
                     console.dir(key);
-                    for (const data in items[webSite][key]) {
+                    let mySet = new Set;
+                    items[webSite][key].forEach(item => mySet.add(item.endsWith('/') ? item.slice(0, -1) : item))
+                    //   for (const data in items[webSite][key]) {
+                    for (const data of mySet) {
                         console.dir(items[webSite][key][data]);
-                        let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + items[webSite][key][data] +
+                        //   let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + items[webSite][key][data] +
+                        "','" + webSite + "');"
+
+                        let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + data +
                             "','" + webSite + "');"
-                        
+
+
                         // INSERT INTO `members` (`full_names`,`gender`,`physical_address`,`contact_number`) VALUES ('Leonard Hofstadter','Male','Woodcrest',0845738767);
 
                         console.log(sql);
