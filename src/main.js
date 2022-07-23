@@ -15,6 +15,7 @@ Apify.main(async () => {
     if (!input) throw new Error('There is no input!');
 
     const {
+        startUrls,
         proxyConfig,
         sameDomain,
         maxDepth,
@@ -27,7 +28,7 @@ Apify.main(async () => {
     // msih start
     // create dataset for data
     const resultsDataset = await msih.createDatasetWithDateTitle();
-    let startUrls = await msih.getURLSfromDatabase();
+    //let startUrls = await msih.getURLSfromDatabase(5);
     console.dir(startUrls);
     // msih end
 
@@ -42,10 +43,9 @@ Apify.main(async () => {
         Apify.events.on('migrating', persistRequestsPerStartUrlCounter);
     }
 
-// TODO populate start url with up to 100
-
     const requestQueue = await Apify.openRequestQueue();
-    const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
+   // const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
+    const requestList = await Apify.openRequestList(null, normalizeUrls(startUrls));
 
     requestList.requests.forEach((req) => {
         req.userData = {
@@ -123,7 +123,8 @@ Apify.main(async () => {
                 depth,
                 referrerUrl: referrer,
                 url,
-                domain: helpers.getDomain(url)
+                domain: helpers.getDomain(url),
+                startUrl: request.userData.startUrl
             };
 
             // Extract and save handles, emails, phone numbers
@@ -173,10 +174,9 @@ Apify.main(async () => {
     console.info('datasetTitle: ' + datasetTitle);
     const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
     await jsonDataStorage.setValue(datasetTitle + 'raw', items);
-    await msih.groupByKeyUniueValuesAndSave(items, 'domain', jsonDataStorage);
+    await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage);
     await msih.deleteRequestListAndQueue(requestList, requestQueue);
-
-    await msih.updateWebSite(items, 'domain',);
+    await msih.updateWebSite(items, 'startUrl',);
 
     log.info(`Crawl finished`);
 });

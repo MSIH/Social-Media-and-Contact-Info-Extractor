@@ -76,46 +76,6 @@ module.exports = {
         return websites;
     },
 
-    getURLSfromDatabase: async (limitSize = 20, sqlcode) => {
-
-        var pool = mysql.createConnection({
-            host: "msih005.local",
-            user: "pricelocal",
-            password: "979901979901",
-            database: "PriceLocal"
-        });
-
-        let sql = "SELECT Website FROM PriceLocal.Vendors \
-            WHERE SocialSearchDate < "+ getDateYYYYMMDD() + " LIMIT " + limitSize;
-
-        log.info(sql);
-
-        const poolQuery = util.promisify(pool.query).bind(pool);
-        const poolEnd = util.promisify(pool.end).bind(pool);
-
-        console.log(sql);
-
-        let websites = [];
-
-        try {
-            const result = await poolQuery(sql);
-            // console.log(result);
-            //console.dir(result);
-            result.forEach(async (element) => {
-                console.dir(element.Website);
-                if (element.Website != 'none') {
-                    websites.push({ url: element.Website });
-                }
-            });
-        } catch (err) {
-            throw err;
-        }
-        await poolEnd();
-        work = false;
-        console.dir(websites);
-        return websites;
-    },
-
     putURLSfromDatabaseIntoQueue: async (requestQueue, sql, pendingMin = 10, limitSize = 20) => {
 
         // if Pending is less than 100, then get 1000
@@ -161,6 +121,7 @@ module.exports = {
             }
         }
     },
+
     createDatasetWithDateTitle: async () => {
         // msih start
         // create dataset for data
@@ -174,15 +135,40 @@ module.exports = {
         return await Apify.openDataset(datasetTitle);
         // msih end
     },
-    updateWebSite: async (items, groupByKeyValue) => {
-        const groupByDomain = {}
 
+    updateWebSite: async (items, groupByKeyValue) => {
         let groupByKeyData = groupByKey(items, groupByKeyValue);
 
-        for (const key in groupByKeyData) {
-            groupByDomain[key] = uniqueValuesInObjects(groupByKeyData[key]);
+        var pool = mysql.createConnection({
+            host: "msih005.local",
+            user: "pricelocal",
+            password: "979901979901",
+            database: "PriceLocal"
+        });     
+
+        const poolQuery = util.promisify(pool.query).bind(pool);
+        const poolEnd = util.promisify(pool.end).bind(pool);
+
+        const dateYYYYMMMDD = getDateYYYYMMDD();
+
+        //console.dir(groupByKeyData);
+        try {
+            for (const key in groupByKeyData) {
+                //console.dir(key);
+                let sql = "UPDATE PriceLocal.Vendors SET SocialSearchDate = " + dateYYYYMMMDD + 
+                " WHERE WebSite = '"+ key +"';"
+
+                //console.log(sql);
+                const result = await poolQuery(sql);
+                console.log(result);
+            }
+        } catch (err) {
+            throw err;
         }
+        await poolEnd();
     },
+
+       
     groupByKeyUniueValuesAndSave: async (items, groupByKeyValue, jsonDataStorage) => {
         const groupByDomain = {}
 
@@ -207,9 +193,12 @@ module.exports = {
 
     deleteRequestListAndQueue: async (requestList, requestQueue) => {
         // delete RequestList bin file
-        //let key = requestList.persistRequestsKey;
-        const store = await Apify.openKeyValueStore();
-        await store.setValue(requestList.persistRequestsKey, null);
+      //  console.log(requestList.persistRequestsKey);
+        if (requestList.persistRequestsKey !== undefined) {
+        //    console.log("key is valid");
+            const store = await Apify.openKeyValueStore();
+            await store.setValue(requestList.persistRequestsKey, null);
+        }
         await requestQueue.drop();
     }
 };
