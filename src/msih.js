@@ -84,8 +84,8 @@ module.exports = {
             database: "PriceLocal"
         });
         let random = Math.floor(Math.random() * 1234567);
-        let sql = "SELECT Website FROM PriceLocal.Vendors \
-            WHERE NOT Website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;
+        let sql = "SELECT website, placeid FROM PriceLocal.Vendors \
+            WHERE NOT website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;
 // NOT Website = 'none' AND 
         log.info(sql);
 
@@ -101,9 +101,10 @@ module.exports = {
             // console.log(result);
             //console.dir(result);
             result.forEach(async (element) => {
-                console.dir(element.Website);
-                if (element.Website != 'none') {
-                    websites.push({ url: element.Website });
+                console.dir(element.website);
+                if (element.website != 'none') {
+                    websites.push({ url: element.website, userData: { placeid: element.placeid } });
+                    // https://sdk.apify.com/docs/api/request-list
                 }
             });
         } catch (err) {
@@ -236,21 +237,32 @@ module.exports = {
                         //   let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + items[webSite][key][data] +
                         "','" + webSite + "');"
 
-                        let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + data +
-                            "','" + webSite + "');"
+                        let sql = "INSERT IGNORE INTO PriceLocal." + key + " (`" + key + "`,`Website`,`placeid`) VALUES ('" + data +
+                            "','" + webSite + "','" + items[webSite]['placeid'] + "');"
 
 
                         // INSERT INTO `members` (`full_names`,`gender`,`physical_address`,`contact_number`) VALUES ('Leonard Hofstadter','Male','Woodcrest',0845738767);
 
                         console.log(sql);
-                        const result = await poolQuery(sql);
+                        const result = await poolQuery(sql
+                            //, function (error, results, fields) {
+                           // if (error) throw error;
+                           // return results
+                            // }
+                        );
+                        /*
+pool.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
+  if (error) throw error;
+  console.log('The solution is: ', results[0].solution);
+});
+                        */
                         console.log(result);
                     }
                 }
 
             }
         } catch (err) {
-            throw err;
+            console.error(err);
         }
         await poolEnd();
     },

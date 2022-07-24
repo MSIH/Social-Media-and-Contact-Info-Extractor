@@ -58,6 +58,7 @@ Apify.main(async () => {
             depth: 0,
             referrer: null,
             startUrl: req.url,
+            placeid: req.userData.placeid,
         };
         if (maxRequestsPerStartUrl) {
             if (!requestsPerStartUrlCounter[req.url]) {
@@ -130,7 +131,8 @@ Apify.main(async () => {
                 referrerUrl: referrer,
                 url,
                 domain: helpers.getDomain(url),
-                startUrl: request.userData.startUrl
+                startUrl: request.userData.startUrl,
+                placeid: request.userData.placeid,
             };
 
             // Extract and save handles, emails, phone numbers
