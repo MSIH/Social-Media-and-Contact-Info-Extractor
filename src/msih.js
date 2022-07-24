@@ -38,7 +38,7 @@ function getYYYMMDDHHSS() {
 
 }
 
- function getPool() {
+function getPool() {
     const pool = mysql2.createPool({
         connectionLimit: 10,
         host: "msih005.local",
@@ -48,7 +48,7 @@ function getYYYMMDDHHSS() {
     })
 
     // Ping database to check for common exception errors.
-  /*   pool.ping((err, connection) => {
+    pool.getConnection((err, connection) => {
         if (err) {
             if (err.code === 'PROTOCOL_CONNECTION_LOST') {
                 console.error('Database connection was closed.')
@@ -61,10 +61,8 @@ function getYYYMMDDHHSS() {
             }
         }
 
-        if (connection) connection.release()
-
-        return
-    }) */
+        if (connection) pool.releaseConnection(connection);
+    })
 
     return pool.promise();
 }
@@ -73,68 +71,31 @@ module.exports = {
     // crawlFrames: async (page) => { },
     // getDomain(url) {},
     getURLSfromDatabase: async (limitSize = 20, sqlcode) => {
-/*
-        var pool = mysql.createConnection({
-            host: "msih005.local",
-            user: "pricelocal",
-            password: "979901979901",
-            database: "PriceLocal"
-        });
-        let random = Math.floor(Math.random() * 1234567);
-        let sql = "SELECT website, placeid FROM PriceLocal.Vendors \
-            WHERE NOT website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;
-        // NOT Website = 'none' AND 
-        log.info(sql);
 
-        const poolQuery = util.promisify(pool.query).bind(pool);
-        const poolEnd = util.promisify(pool.end).bind(pool);
-
-        console.log(sql);
-
-        let websites = [];
-
-        try {
-            const result = await poolQuery(sql);
-            // console.log(result);
-            //console.dir(result);
-            result.forEach(async (element) => {
-                console.dir(element.website);
-                if (element.website != 'none') {
-                    websites.push({ url: element.website, userData: { placeid: element.placeid } });
-                    // https://sdk.apify.com/docs/api/request-list
-                }
-            });
-        } catch (err) {
-            throw err;
-        }
-        await poolEnd();
-        */
         let websites = [];
         let pool = getPool();
 
         let random = Math.floor(Math.random() * 1234567);
         let sql = "SELECT website, placeid FROM PriceLocal.Vendors \
             WHERE NOT website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;
-        // NOT Website = 'none' AND 
         log.info(sql);
-        const [result,fields] = await pool.query(sql);
-        /*
-            , function (err, results, fields) {
-            console.log(results); // results contains rows returned by server
-            console.log(fields); // fields contains extra meta data about results, if available
-            return results
-        })        */
-        console.dir(result);
-        result.forEach(async (element) => {
-            console.dir(element.website);
-            if (element.website != 'none') {
-                websites.push({ url: element.website, userData: { placeid: element.placeid } });
-                // https://sdk.apify.com/docs/api/request-list
-            }
-        });
-      
+        try {
+            const [result, fields] = await pool.query(sql);
+            // console.dir(result);
+            result.forEach(async (element) => {
+                //  console.dir(element.website);
+                if (element.website != 'none') {
+                    websites.push({ url: element.website, userData: { placeid: element.placeid } });
+                    // https://sdk.apify.com/docs/api/request-list
+                }
+            });
+        }
+        catch {
+            console.log('mysql error')
+        }
+
         console.dir(websites);
-  
+
         return websites;
     },
 
@@ -201,15 +162,7 @@ module.exports = {
     updateWebSite: async (items, groupByKeyValue) => {
         let groupByKeyData = groupByKey(items, groupByKeyValue);
 
-        var pool = mysql.createConnection({
-            host: "msih005.local",
-            user: "pricelocal",
-            password: "979901979901",
-            database: "PriceLocal"
-        });
-
-        const poolQuery = util.promisify(pool.query).bind(pool);
-        const poolEnd = util.promisify(pool.end).bind(pool);
+        let pool = getPool();
 
         const dateYYYYMMMDD = getDateYYYYMMDD();
 
@@ -221,27 +174,18 @@ module.exports = {
                     " WHERE WebSite = '" + key + "';"
 
                 // console.log(sql);
-                const result = await poolQuery(sql);
+                const [result, fields] = await pool.query(sql);
                 // console.log(result);
                 log.info(`Updated SocialSearchDate field for ${key}`);
             }
         } catch (err) {
             throw err;
         }
-        await poolEnd();
     },
 
     saveSocial: async (items) => {
 
-        var pool = mysql.createConnection({
-            host: "msih005.local",
-            user: "pricelocal",
-            password: "979901979901",
-            database: "PriceLocal"
-        });
-
-        const poolQuery = util.promisify(pool.query).bind(pool);
-        const poolEnd = util.promisify(pool.end).bind(pool);
+        let pool = getPool().query;
 
         const dateYYYYMMMDD = getDateYYYYMMDD();
 
@@ -267,7 +211,7 @@ module.exports = {
                         let sql = "INSERT IGNORE INTO PriceLocal." + key + " (`" + key + "`,`Website`,`placeid`) VALUES ('" + data +
                             "','" + webSite + "','" + items[webSite]['placeid'] + "');"
                         // console.log(sql);
-                        const result = await poolQuery(sql);
+                        const [result, fields] = await pool.query(sql);
                         //  console.log(result.insertId);
                     }
                 }
@@ -277,7 +221,7 @@ module.exports = {
         } catch (err) {
             console.error(err);
         }
-        await poolEnd();
+
     },
 
     groupByKeyUniueValuesAndSave: async (items, groupByKeyValue, jsonDataStorage) => {
