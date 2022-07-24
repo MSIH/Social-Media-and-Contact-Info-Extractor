@@ -176,13 +176,14 @@ Apify.main(async () => {
     // Run crawler
     log.info(`Starting the crawl...`);
     await crawler.run();
+    log.info(`Crawl finished`);
 
     // MSIH start
     const { items } = await resultsDataset.getData();
     console.info('Save data to folder jsonDataStorage/' + datasetTitle + 'raw');
     const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
     await jsonDataStorage.setValue(datasetTitle + 'raw', items);
-    console.info('Save data to folder jsonDataStorage/' + datasetTitle + '-groupByDomain');
+   
     let grouppedData = await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage);
     await msih.updateWebSite(items, 'startUrl');
     await msih.saveSocial(grouppedData)
@@ -191,5 +192,5 @@ Apify.main(async () => {
     await resultsDataset.drop();
     // MSIH end
 
-    log.info(`Crawl finished`);
+
 });

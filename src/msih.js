@@ -1,5 +1,6 @@
 const Apify = require('apify');
 const mysql = require('mysql');
+const mysql2 = require('mysql2');
 const util = require('util');
 const { log } = Apify.utils;
 
@@ -34,11 +35,11 @@ function getDateYYYYMMDD() {
 function getYYYMMDDHHSS() {
     const timeStamp = (new Date()).toISOString().replace(/[^0-9]/g, '').slice(0, -3)
     return parseInt(timeStamp, 10)
- 
+
 }
 
-function getPool() {
-    const pool = mysql.createPool({
+ function getPool() {
+    const pool = mysql2.createPool({
         connectionLimit: 10,
         host: "msih005.local",
         user: "pricelocal",
@@ -47,7 +48,7 @@ function getPool() {
     })
 
     // Ping database to check for common exception errors.
-    pool.getConnection((err, connection) => {
+  /*   pool.ping((err, connection) => {
         if (err) {
             if (err.code === 'PROTOCOL_CONNECTION_LOST') {
                 console.error('Database connection was closed.')
@@ -63,20 +64,16 @@ function getPool() {
         if (connection) connection.release()
 
         return
-    })
+    }) */
 
-    // Promisify for Node.js async/await.
-    pool.query = util.promisify(pool.query)
-    return pool
+    return pool.promise();
 }
-
-let work = true;
 
 module.exports = {
     // crawlFrames: async (page) => { },
     // getDomain(url) {},
     getURLSfromDatabase: async (limitSize = 20, sqlcode) => {
-
+/*
         var pool = mysql.createConnection({
             host: "msih005.local",
             user: "pricelocal",
@@ -86,7 +83,7 @@ module.exports = {
         let random = Math.floor(Math.random() * 1234567);
         let sql = "SELECT website, placeid FROM PriceLocal.Vendors \
             WHERE NOT website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;
-// NOT Website = 'none' AND 
+        // NOT Website = 'none' AND 
         log.info(sql);
 
         const poolQuery = util.promisify(pool.query).bind(pool);
@@ -111,8 +108,33 @@ module.exports = {
             throw err;
         }
         await poolEnd();
-        work = false;
+        */
+        let websites = [];
+        let pool = getPool();
+
+        let random = Math.floor(Math.random() * 1234567);
+        let sql = "SELECT website, placeid FROM PriceLocal.Vendors \
+            WHERE NOT website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;
+        // NOT Website = 'none' AND 
+        log.info(sql);
+        const [result,fields] = await pool.query(sql);
+        /*
+            , function (err, results, fields) {
+            console.log(results); // results contains rows returned by server
+            console.log(fields); // fields contains extra meta data about results, if available
+            return results
+        })        */
+        console.dir(result);
+        result.forEach(async (element) => {
+            console.dir(element.website);
+            if (element.website != 'none') {
+                websites.push({ url: element.website, userData: { placeid: element.placeid } });
+                // https://sdk.apify.com/docs/api/request-list
+            }
+        });
+      
         console.dir(websites);
+  
         return websites;
     },
 
@@ -198,9 +220,9 @@ module.exports = {
                 let sql = "UPDATE PriceLocal.Vendors SET SocialSearchDate = " + dateYYYYMMMDD +
                     " WHERE WebSite = '" + key + "';"
 
-               // console.log(sql);
+                // console.log(sql);
                 const result = await poolQuery(sql);
-               // console.log(result);
+                // console.log(result);
                 log.info(`Updated SocialSearchDate field for ${key}`);
             }
         } catch (err) {
@@ -226,28 +248,32 @@ module.exports = {
         //console.dir(groupByKeyData);
         try {
             for (const webSite in items) {
-               // console.dir(webSite);
+                // console.dir(webSite);
                 for (const key of ['discords', 'tiktoks', 'youtubes', 'instagrams',
                     'facebooks', 'linkedIns', 'phones', 'emails']) {
                     //console.dir(key);
                     let mySet = new Set;
-                    items[webSite][key].forEach(item => mySet.add((item.endsWith('/') ? item.slice(0, -1) : item).toLowerCase()));
+                    items[webSite][key].forEach(item => {
+                        cleanData = (item.endsWith('/') ? item.slice(0, -1) : item).toLowerCase()
+                        cleanData = cleanData.replace(/["']/g, "");
+                        mySet.add(cleanData);
+                    });
                     //   for (const data in items[webSite][key]) {
                     for (const data of mySet) {
-                       // console.dir(data);
+                        // console.dir(data);
                         //   let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + items[webSite][key][data] +
                         "','" + webSite + "');"
 
                         let sql = "INSERT IGNORE INTO PriceLocal." + key + " (`" + key + "`,`Website`,`placeid`) VALUES ('" + data +
                             "','" + webSite + "','" + items[webSite]['placeid'] + "');"
-                       // console.log(sql);
+                        // console.log(sql);
                         const result = await poolQuery(sql);
-                      //  console.log(result.insertId);
+                        //  console.log(result.insertId);
                     }
                 }
                 log.info(`Saved Social Data for ${webSite}`);
             }
-       
+
         } catch (err) {
             console.error(err);
         }
@@ -272,6 +298,7 @@ module.exports = {
         //console.log(`Finding Unique took ${endTime - startTime} milliseconds`)
 
         await jsonDataStorage.setValue(datasetTitle + "-groupByDomain", groupByDomain);
+        log.info('Group Data by WebSite and Save to folder jsonDataStorage/' + datasetTitle + '-groupByDomain');
         return groupByDomain
     },
 
@@ -288,6 +315,7 @@ module.exports = {
         await store.setValue("SDK_SESSION_POOL_STATE", null);
         await store.setValue("STATE-REQUESTS-PER-START-URL", null);
         await requestQueue.drop();
+        log.info('Delete Request Queue Database and Crawl Meta Files');
     },
 
     getStats: async (input) => {
@@ -310,6 +338,7 @@ module.exports = {
             const perfDataStorage = await Apify.openKeyValueStore('perfDataStorage');
             // save perf data to file named datasetTitle
             await perfDataStorage.setValue(dateYYYYMMMDDHHSS.toString(), { getStats });
+            log.info('Job Stats and Information');
             console.dir(getStats);
         }
     }
