@@ -23,6 +23,7 @@ Apify.main(async () => {
         // These are total (kept naming for backward compatibillity)
         maxRequests,
         maxRequestsPerStartUrl,
+        numberURLS,
     } = input;
 
 
@@ -47,7 +48,7 @@ Apify.main(async () => {
     //console.dir(startUrls);
     let URLSfromDatabase = startUrls;
     if (!startUrls) {
-         URLSfromDatabase = await msih.getURLSfromDatabase(3);
+        URLSfromDatabase = await msih.getURLSfromDatabase(numberURLS);
     }
     const requestList = await Apify.openRequestList(null, URLSfromDatabase);
     // msih end
@@ -184,5 +185,6 @@ Apify.main(async () => {
     await msih.saveSocial(grouppedData)
     await msih.getStats(input);
     await msih.deleteRequestListAndQueue(requestList, requestQueue);
+    await resultsDataset.drop();
     log.info(`Crawl finished`);
 });

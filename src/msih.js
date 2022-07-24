@@ -31,6 +31,45 @@ function getDateYYYYMMDD() {
     return parseInt(dateYYYYMMDDstring, 10)
 }
 
+function getYYYMMDDHHSS() {
+    const timeStamp = (new Date()).toISOString().replace(/[^0-9]/g, '').slice(0, -3)
+    return parseInt(timeStamp, 10)
+ 
+}
+
+function getPool() {
+    const pool = mysql.createPool({
+        connectionLimit: 10,
+        host: "msih005.local",
+        user: "pricelocal",
+        password: "979901979901",
+        database: "PriceLocal"
+    })
+
+    // Ping database to check for common exception errors.
+    pool.getConnection((err, connection) => {
+        if (err) {
+            if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+                console.error('Database connection was closed.')
+            }
+            if (err.code === 'ER_CON_COUNT_ERROR') {
+                console.error('Database has too many connections.')
+            }
+            if (err.code === 'ECONNREFUSED') {
+                console.error('Database connection was refused.')
+            }
+        }
+
+        if (connection) connection.release()
+
+        return
+    })
+
+    // Promisify for Node.js async/await.
+    pool.query = util.promisify(pool.query)
+    return pool
+}
+
 let work = true;
 
 module.exports = {
@@ -46,7 +85,7 @@ module.exports = {
         });
         let random = Math.floor(Math.random() * 1234567);
         let sql = "SELECT Website FROM PriceLocal.Vendors \
-            WHERE SocialSearchDate < "+ getDateYYYYMMDD() + " LIMIT " + random + "," + limitSize;
+            WHERE NOT Website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;
 // NOT Website = 'none' AND 
         log.info(sql);
 
@@ -190,7 +229,7 @@ module.exports = {
                     'facebooks', 'linkedIns', 'phones', 'emails']) {
                     console.dir(key);
                     let mySet = new Set;
-                    items[webSite][key].forEach(item => mySet.add(item.endsWith('/') ? item.slice(0, -1) : item))
+                    items[webSite][key].forEach(item => mySet.add((item.endsWith('/') ? item.slice(0, -1) : item).toLowerCase()));
                     //   for (const data in items[webSite][key]) {
                     for (const data of mySet) {
                         console.dir(items[webSite][key][data]);
@@ -254,7 +293,7 @@ module.exports = {
     },
 
     getStats: async (input) => {
-        const dateYYYYMMMDD = getDateYYYYMMDD();
+        const dateYYYYMMMDDHHSS = getYYYMMDDHHSS();
 
         getStats = await Apify.getValue('SDK_CRAWLER_STATISTICS_0');
 
@@ -272,7 +311,7 @@ module.exports = {
             // open perfDataStorage key value store
             const perfDataStorage = await Apify.openKeyValueStore('perfDataStorage');
             // save perf data to file named datasetTitle
-            await perfDataStorage.setValue(dateYYYYMMMDD.toString(), { getStats });
+            await perfDataStorage.setValue(dateYYYYMMMDDHHSS.toString(), { getStats });
             console.dir(getStats);
         }
     }
