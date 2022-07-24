@@ -198,9 +198,10 @@ module.exports = {
                 let sql = "UPDATE PriceLocal.Vendors SET SocialSearchDate = " + dateYYYYMMMDD +
                     " WHERE WebSite = '" + key + "';"
 
-                console.log(sql);
+               // console.log(sql);
                 const result = await poolQuery(sql);
-                console.log(result);
+               // console.log(result);
+                log.info(`Updated SocialSearchDate field for ${key}`);
             }
         } catch (err) {
             throw err;
@@ -225,48 +226,33 @@ module.exports = {
         //console.dir(groupByKeyData);
         try {
             for (const webSite in items) {
-                console.dir(webSite);
+               // console.dir(webSite);
                 for (const key of ['discords', 'tiktoks', 'youtubes', 'instagrams',
                     'facebooks', 'linkedIns', 'phones', 'emails']) {
-                    console.dir(key);
+                    //console.dir(key);
                     let mySet = new Set;
                     items[webSite][key].forEach(item => mySet.add((item.endsWith('/') ? item.slice(0, -1) : item).toLowerCase()));
                     //   for (const data in items[webSite][key]) {
                     for (const data of mySet) {
-                        console.dir(items[webSite][key][data]);
+                       // console.dir(data);
                         //   let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + items[webSite][key][data] +
                         "','" + webSite + "');"
 
                         let sql = "INSERT IGNORE INTO PriceLocal." + key + " (`" + key + "`,`Website`,`placeid`) VALUES ('" + data +
                             "','" + webSite + "','" + items[webSite]['placeid'] + "');"
-
-
-                        // INSERT INTO `members` (`full_names`,`gender`,`physical_address`,`contact_number`) VALUES ('Leonard Hofstadter','Male','Woodcrest',0845738767);
-
-                        console.log(sql);
-                        const result = await poolQuery(sql
-                            //, function (error, results, fields) {
-                           // if (error) throw error;
-                           // return results
-                            // }
-                        );
-                        /*
-pool.query('SELECT 1 + 1 AS solution', function (error, results, fields) {
-  if (error) throw error;
-  console.log('The solution is: ', results[0].solution);
-});
-                        */
-                        console.log(result);
+                       // console.log(sql);
+                        const result = await poolQuery(sql);
+                      //  console.log(result.insertId);
                     }
                 }
-
+                log.info(`Saved Social Data for ${webSite}`);
             }
+       
         } catch (err) {
             console.error(err);
         }
         await poolEnd();
     },
-
 
     groupByKeyUniueValuesAndSave: async (items, groupByKeyValue, jsonDataStorage) => {
         const groupByDomain = {}
