@@ -1,5 +1,4 @@
 const Apify = require('apify');
-const mysql = require('mysql');
 const mysql2 = require('mysql2');
 const util = require('util');
 const { log } = Apify.utils;
@@ -94,7 +93,7 @@ module.exports = {
             console.log('mysql error')
         }
 
-        console.dir(websites);
+  //      console.dir(websites);
 
         return websites;
     },
@@ -185,7 +184,7 @@ module.exports = {
 
     saveSocial: async (items) => {
 
-        let pool = getPool().query;
+        let pool = getPool();
 
         const dateYYYYMMMDD = getDateYYYYMMDD();
 
