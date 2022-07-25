@@ -93,7 +93,8 @@ module.exports = {
             console.log('mysql error')
         }
 
-  //      console.dir(websites);
+  
+        console.dir(websites);
 
         return websites;
     },
@@ -243,7 +244,7 @@ module.exports = {
     },
 
 
-    deleteRequestListAndQueue: async (requestList, requestQueue) => {
+    deleteRequestListAndQueue: async (requestList, requestQueue,statIndex) => {
         // delete RequestList bin file
         //  console.log(requestList.persistRequestsKey);
         const store = await Apify.openKeyValueStore();
@@ -251,17 +252,17 @@ module.exports = {
             //    console.log("key is valid");  
             await store.setValue(requestList.persistRequestsKey, null);
         }
-        await store.setValue("SDK_CRAWLER_STATISTICS_0", null);
+        await store.setValue("SDK_CRAWLER_STATISTICS_" + statIndex.toString(), null);
         await store.setValue("SDK_SESSION_POOL_STATE", null);
         await store.setValue("STATE-REQUESTS-PER-START-URL", null);
         await requestQueue.drop();
         log.info('Delete Request Queue Database and Crawl Meta Files');
     },
 
-    getStats: async (input) => {
+    getStats: async(input, statIndex=0) => {
         const dateYYYYMMMDDHHSS = getYYYMMDDHHSS();
 
-        getStats = await Apify.getValue('SDK_CRAWLER_STATISTICS_0');
+        getStats = await Apify.getValue("SDK_CRAWLER_STATISTICS_" + statIndex.toString());
 
         if (getStats !== null) {
             getStats.requestMinDurationPerSeconds = (getStats.requestMinDurationMillis / 1000);

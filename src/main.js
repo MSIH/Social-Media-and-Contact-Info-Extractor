@@ -11,186 +11,195 @@ const PAGE_GOTO_TIMEOUT_SECS = 200;
 const WAIT_FOR_BODY_SECS = 60;
 
 Apify.main(async () => {
-    const input = await Apify.getValue('INPUT');
-    if (!input) throw new Error('There is no input!');
+    for (let i = 0; i < 1; i++) {
+        
+        const input = await Apify.getValue('INPUT');
+        if (!input) throw new Error('There is no input!');
 
-    const {
-        startUrls,
-        proxyConfig,
-        sameDomain,
-        maxDepth,
-        considerChildFrames,
-        // These are total (kept naming for backward compatibillity)
-        maxRequests,
-        maxRequestsPerStartUrl,
-        numberURLS,
-    } = input;
+        const {
+            startUrls,
+            proxyConfig,
+            sameDomain,
+            maxDepth,
+            considerChildFrames,
+            // These are total (kept naming for backward compatibillity)
+            maxRequests,
+            maxRequestsPerStartUrl,
+            numberURLS,
+        } = input;
 
 
 
-    // Object with startUrls as keys and counters as values
-    const requestsPerStartUrlCounter = (await Apify.getValue('STATE-REQUESTS-PER-START-URL')) || {};
+        // Object with startUrls as keys and counters as values
+        const requestsPerStartUrlCounter = (await Apify.getValue('STATE-REQUESTS-PER-START-URL')) || {};
 
-    if (maxRequestsPerStartUrl) {
-        const persistRequestsPerStartUrlCounter = async () => {
-            await Apify.setValue('STATE-REQUESTS-PER-START-URL', requestsPerStartUrlCounter);
-        };
-        setInterval(persistRequestsPerStartUrlCounter, 60000);
-        Apify.events.on('migrating', persistRequestsPerStartUrlCounter);
-    }
-
-    const requestQueue = await Apify.openRequestQueue();
-    // const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
-    
-    // msih start
-    // create dataset for data
-    const resultsDataset = await msih.createDatasetWithDateTitle();
-    //console.dir(startUrls);
-    let URLSfromDatabase = startUrls;
-    if (!startUrls) {
-        URLSfromDatabase = await msih.getURLSfromDatabase(numberURLS);
-    }
-    const requestList = await Apify.openRequestList(null, URLSfromDatabase);
-    // msih end
-
-    requestList.requests.forEach((req) => {
-        req.userData = {
-            depth: 0,
-            referrer: null,
-            startUrl: req.url,
-            placeid: req.userData.placeid,
-        };
         if (maxRequestsPerStartUrl) {
-            if (!requestsPerStartUrlCounter[req.url]) {
-                requestsPerStartUrlCounter[req.url] = {
-                    counter: 1,
-                    wasLogged: false,
-                };
-            }
+            const persistRequestsPerStartUrlCounter = async () => {
+                await Apify.setValue('STATE-REQUESTS-PER-START-URL', requestsPerStartUrlCounter);
+            };
+            setInterval(persistRequestsPerStartUrlCounter, 60000);
+            Apify.events.on('migrating', persistRequestsPerStartUrlCounter);
         }
-    });
 
-    const proxyConfiguration = await Apify.createProxyConfiguration(proxyConfig);
+        const requestQueue = await Apify.openRequestQueue();
+        // const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
+    
+        // msih start
+        // create dataset for data
+        const resultsDataset = await msih.createDatasetWithDateTitle();
+        //console.dir(startUrls);
+        let URLSfromDatabase = startUrls;
+        if (!startUrls) {
+            URLSfromDatabase = await msih.getURLSfromDatabase(numberURLS);
+        }
+        const requestList = await Apify.openRequestList(null, URLSfromDatabase);
 
-    // Create the crawler
-    const crawlerOptions = {
-        requestList,
-        requestQueue,
-        proxyConfiguration,
-        launchContext: {
-            useIncognitoPages: true,
-            useChrome: false,
-            launchOptions: {
-                headless: true,
+  /*       if (proxyConfig) {
+            proxyConfig = {
+                proxyUrls: proxyConfig
             }
-        },
-        browserPoolOptions: {
-            useFingerprints: true,
-        },
-        handlePageFunction: async ({ page, request }) => {
-            log.info(`Processing ${request.url}`);
+        } */
+        // msih end
 
-            // Wait for body tag to load
-            await page.waitForSelector('body', {
-                timeout: WAIT_FOR_BODY_SECS * 1000,
-            });
-
-            // Set enqueue options
-            const linksToEnqueueOptions = {
-                page,
-                requestQueue,
-                selector: 'a',
-                sameDomain,
-                urlDomain: helpers.getDomain(request.url),
-                startUrl: request.userData.startUrl,
-                depth: request.userData.depth,
-                // These options makes the enqueueUrls call stateful. It would be better to refactor this.
-                maxRequestsPerStartUrl,
-                requestsPerStartUrlCounter,
+        requestList.requests.forEach((req) => {
+            req.userData = {
+                depth: 0,
+                referrer: null,
+                startUrl: req.url,
+                placeid: req.userData.placeid,
             };
-
-            // Enqueue all links on the page
-            if (typeof maxDepth !== 'number' || request.userData.depth < maxDepth) {
-                await helpers.enqueueUrls(linksToEnqueueOptions);
+            if (maxRequestsPerStartUrl) {
+                if (!requestsPerStartUrlCounter[req.url]) {
+                    requestsPerStartUrlCounter[req.url] = {
+                        counter: 1,
+                        wasLogged: false,
+                    };
+                }
             }
+        });
 
-            // Crawl HTML frames
-            let frameSocialHandles = {};
-            if (considerChildFrames) {
-                frameSocialHandles = await helpers.crawlFrames(page);
-            }
+        const proxyConfiguration = await Apify.createProxyConfiguration(proxyConfig);
 
-            // Generate result
-            const { userData: { depth, referrer } } = request;
-            const url = page.url();
-            const html = await page.content();
+        // Create the crawler
+        const crawlerOptions = {
+            requestList,
+            requestQueue,
+            proxyConfiguration,
+            launchContext: {
+                useIncognitoPages: true,
+                useChrome: false,
+                launchOptions: {
+                    headless: true,
+                }
+            },
+            browserPoolOptions: {
+                useFingerprints: true,
+            },
+            handlePageFunction: async ({ page, request }) => {
+                log.info(`Processing ${request.url}`);
 
-            const result = {
-                html,
-                depth,
-                referrerUrl: referrer,
-                url,
-                domain: helpers.getDomain(url),
-                startUrl: request.userData.startUrl,
-                placeid: request.userData.placeid,
-            };
+                // Wait for body tag to load
+                await page.waitForSelector('body', {
+                    timeout: WAIT_FOR_BODY_SECS * 1000,
+                });
 
-            // Extract and save handles, emails, phone numbers
-            const socialHandles = Apify.utils.social.parseHandlesFromHtml(html);
+                // Set enqueue options
+                const linksToEnqueueOptions = {
+                    page,
+                    requestQueue,
+                    selector: 'a',
+                    sameDomain,
+                    urlDomain: helpers.getDomain(request.url),
+                    startUrl: request.userData.startUrl,
+                    depth: request.userData.depth,
+                    // These options makes the enqueueUrls call stateful. It would be better to refactor this.
+                    maxRequestsPerStartUrl,
+                    requestsPerStartUrlCounter,
+                };
 
-            // Merge frames with main
-            const mergedSocial = helpers.mergeSocial(frameSocialHandles, socialHandles);
-            Object.assign(result, mergedSocial);
+                // Enqueue all links on the page
+                if (typeof maxDepth !== 'number' || request.userData.depth < maxDepth) {
+                    await helpers.enqueueUrls(linksToEnqueueOptions);
+                }
 
-            // Clean up
-            delete result.html;
+                // Crawl HTML frames
+                let frameSocialHandles = {};
+                if (considerChildFrames) {
+                    frameSocialHandles = await helpers.crawlFrames(page);
+                }
 
-            // Store results
-            // await Apify.pushData(result);
+                // Generate result
+                const { userData: { depth, referrer } } = request;
+                const url = page.url();
+                const html = await page.content();
 
-            // msih start
-            await resultsDataset.pushData(result);
-            // await msih.getURLSfromDatabase(requestQueue);
-            // msih end
-        },
-        handleFailedRequestFunction: async ({ request }) => {
-            log.error(`Request ${request.url} failed 4 times`);
-        },
-        gotoFunction: async ({ page, request }) => {
-            // Block resources such as images and CSS files, to increase crawling speed
-            await Apify.utils.puppeteer.blockRequests(page);
+                const result = {
+                    html,
+                    depth,
+                    referrerUrl: referrer,
+                    url,
+                    domain: helpers.getDomain(url),
+                    startUrl: request.userData.startUrl,
+                    placeid: request.userData.placeid,
+                };
 
-            return page.goto(request.url, {
-                timeout: PAGE_GOTO_TIMEOUT_SECS * 1000,
-                waitUntil: 'domcontentloaded',
-            });
-        },
-    };
+                // Extract and save handles, emails, phone numbers
+                const socialHandles = Apify.utils.social.parseHandlesFromHtml(html);
 
-    // Limit requests
-    if (maxRequests) crawlerOptions.maxRequestsPerCrawl = maxRequests;
+                // Merge frames with main
+                const mergedSocial = helpers.mergeSocial(frameSocialHandles, socialHandles);
+                Object.assign(result, mergedSocial);
 
-    // Create crawler
-    const crawler = new Apify.PuppeteerCrawler(crawlerOptions);
+                // Clean up
+                delete result.html;
 
-    // Run crawler
-    log.info(`Starting the crawl...`);
-    await crawler.run();
-    log.info(`Crawl finished`);
+                // Store results
+                // await Apify.pushData(result);
 
-    // MSIH start
-    const { items } = await resultsDataset.getData();
-    console.info('Save data to folder jsonDataStorage/' + datasetTitle + 'raw');
-    const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
-    await jsonDataStorage.setValue(datasetTitle + 'raw', items);
+                // msih start
+                await resultsDataset.pushData(result);
+                // await msih.getURLSfromDatabase(requestQueue);
+                // msih end
+            },
+            handleFailedRequestFunction: async ({ request }) => {
+                log.error(`Request ${request.url} failed 4 times`);
+            },
+            gotoFunction: async ({ page, request }) => {
+                // Block resources such as images and CSS files, to increase crawling speed
+                await Apify.utils.puppeteer.blockRequests(page);
+
+                return page.goto(request.url, {
+                    timeout: PAGE_GOTO_TIMEOUT_SECS * 1000,
+                    waitUntil: 'domcontentloaded',
+                });
+            },
+        };
+
+        // Limit requests
+        if (maxRequests) crawlerOptions.maxRequestsPerCrawl = maxRequests;
+
+        // Create crawler
+        const crawler = new Apify.PuppeteerCrawler(crawlerOptions);
+
+        // Run crawler
+        log.info(`Starting the crawl...`);
+        await crawler.run();
+        log.info(`Crawl finished`);
+
+        // MSIH start
+        await msih.getStats(input,i);
+        const { items } = await resultsDataset.getData();
+        console.info('Save data to folder jsonDataStorage/' + datasetTitle + 'raw');
+        const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
+        await jsonDataStorage.setValue(datasetTitle + 'raw', items);
    
-    let grouppedData = await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage);
-    await msih.updateWebSite(items, 'startUrl');
-    await msih.saveSocial(grouppedData)
-    await msih.getStats(input);
-    await msih.deleteRequestListAndQueue(requestList, requestQueue);
-    await resultsDataset.drop();
-    // MSIH end
+        let grouppedData = await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage);
+        await msih.updateWebSite(items, 'startUrl');
+        await msih.saveSocial(grouppedData)
 
+        await msih.deleteRequestListAndQueue(requestList, requestQueue,i);
+        await resultsDataset.drop();
+        // MSIH end
 
+    }
 });
