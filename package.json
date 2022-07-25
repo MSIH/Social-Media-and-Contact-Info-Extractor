@@ -10,6 +10,7 @@
   },
   "scripts": {
     "start": "APIFY_LOCAL_STORAGE_DIR=apify_storage node ./src/main.js",
+      "import": "APIFY_LOCAL_STORAGE_DIR=apify_storage node ./src/importFromCrash.js",
     "lint": "./node_modules/.bin/eslint ./src",
     "lint:fix": "./node_modules/.bin/eslint ./src --ext .js --fix"
   },

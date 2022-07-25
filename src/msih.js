@@ -182,13 +182,10 @@ module.exports = {
         }
     },
 
-    saveSocial: async (items) => {
+    saveSocial: async (items,debug) => {
 
         let pool = getPool();
 
-        const dateYYYYMMMDD = getDateYYYYMMDD();
-
-        //console.dir(groupByKeyData);
         try {
             for (const webSite in items) {
                 // console.dir(webSite);
@@ -208,8 +205,8 @@ module.exports = {
                         "','" + webSite + "');"
 
                         let sql = "INSERT IGNORE INTO PriceLocal." + key + " (`" + key + "`,`Website`,`placeid`) VALUES ('" + data +
-                            "','" + webSite + "','" + items[webSite]['placeid'] + "');"
-                        // console.log(sql);
+                            "','" + webSite.replace(/["']/g, "") + "','" + items[webSite]['placeid'] + "');"
+                        if(debug) console.log(sql);
                         const [result, fields] = await pool.query(sql);
                         //  console.log(result.insertId);
                     }
