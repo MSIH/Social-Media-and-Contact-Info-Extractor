@@ -4,6 +4,8 @@ const util = require('util');
 const { log } = Apify.utils;
 
 
+
+
 function groupByKey(array, key) {
     return array
         .reduce((hash, obj) => {
@@ -37,17 +39,20 @@ function getYYYMMDDHHSS() {
 
 }
 
+let mySQLPoolConnection;
 function getPool() {
-    const pool = mysql2.createPool({
-        connectionLimit: 10,
-        host: "msih005.local",
-        user: "pricelocal",
-        password: "979901979901",
-        database: "PriceLocal"
-    })
+    if (!mySQLPoolConnection) {
+        mySQLPoolConnection = mysql2.createPool({
+            connectionLimit: 20,
+            host: "msih005.local",
+            user: "pricelocal",
+            password: "979901979901",
+            database: "PriceLocal"
+        })
+    }
 
     // Ping database to check for common exception errors.
-    pool.getConnection((err, connection) => {
+    mySQLPoolConnection.getConnection((err, connection) => {
         if (err) {
             if (err.code === 'PROTOCOL_CONNECTION_LOST') {
                 console.error('Database connection was closed.')
@@ -60,15 +65,28 @@ function getPool() {
             }
         }
 
-        if (connection) pool.releaseConnection(connection);
+        if (connection) mySQLPoolConnection.releaseConnection(connection);
     })
 
-    return pool.promise();
+    return mySQLPoolConnection.promise();
 }
 
 module.exports = {
     // crawlFrames: async (page) => { },
     // getDomain(url) {},
+    zipDatastore: async (dataStoreName) => {
+        // zip file
+        const STORAGE_DIR = './' + process.env.APIFY_LOCAL_STORAGE_DIR;
+        const KEY_VALUE_STORES = 'key_value_stores';    
+        const kvpPath = STORAGE_DIR + '/' + KEY_VALUE_STORES;
+        const dataFilePathAndName = kvpPath + '/jsonDataStorage/' + dataStoreName;
+        console.log(dataFilePathAndName);
+
+        const file = new AdmZip();
+        file.addLocalFile(dataFilePathAndName + '.json');
+        file.writeZip(dataFilePathAndName + '.zip');
+        console.log('file Zipped');
+    },
     getURLSfromDatabase: async (limitSize = 20, sqlcode) => {
 
         let websites = [];
@@ -168,8 +186,10 @@ module.exports = {
 
         //console.dir(groupByKeyData);
         try {
-            for (const key in groupByKeyData) {
+            for (let key in groupByKeyData) {
                 //console.dir(key);
+               // key = (key.endsWith('/') ? key.slice(0, -1) : key).toLowerCase() //remove slash at end
+                key = key.replace(/["']/g, ""); //remove ' on string,  
                 let sql = "UPDATE PriceLocal.Vendors SET SocialSearchDate = " + dateYYYYMMMDD +
                     " WHERE WebSite = '" + key + "';"
 
@@ -190,23 +210,22 @@ module.exports = {
         try {
             for (const webSite in items) {
                 // console.dir(webSite);
+                let placeid = items[webSite]['placeid'] || "none"; //old runs did not capture this data, so if null put in placeholder
                 for (const key of ['discords', 'tiktoks', 'youtubes', 'instagrams',
-                    'facebooks', 'linkedIns', 'phones', 'emails']) {
+                    'facebooks', 'linkedIns', 'phones', 'emails']) { //these are the only keys we are captuing data from at this time
                     //console.dir(key);
                     let mySet = new Set;
                     items[webSite][key].forEach(item => {
-                        cleanData = (item.endsWith('/') ? item.slice(0, -1) : item).toLowerCase()
-                        cleanData = cleanData.replace(/["']/g, "");
-                        mySet.add(cleanData);
+                        cleanData = (item.endsWith('/') ? item.slice(0, -1) : item).toLowerCase() //remove slash at end
+                        cleanData = cleanData.replace(/["']/g, ""); //remove ' on string,                         
+                        mySet.add(cleanData); //set only stores unique values
                     });
                     //   for (const data in items[webSite][key]) {
                     for (const data of mySet) {
                         // console.dir(data);
-                        //   let sql = "INSERT INTO PriceLocal." + key + " (`" + key + "`,`Website`) VALUES ('" + items[webSite][key][data] +
-                        "','" + webSite + "');"
-
+                        let web = webSite.replace(/["',]/g, "");
                         let sql = "INSERT IGNORE INTO PriceLocal." + key + " (`" + key + "`,`Website`,`placeid`) VALUES ('" + data +
-                            "','" + webSite.replace(/["']/g, "") + "','" + items[webSite]['placeid'] + "');"
+                            "','" + web + "','" + placeid + "');"
                         if(debug) console.log(sql);
                         const [result, fields] = await pool.query(sql);
                         //  console.log(result.insertId);
@@ -221,7 +240,7 @@ module.exports = {
 
     },
 
-    groupByKeyUniueValuesAndSave: async (items, groupByKeyValue, jsonDataStorage) => {
+    groupByKeyUniueValuesAndSave: async (items, groupByKeyValue, jsonDataStorage, datasetTitle) => {
         const groupByDomain = {}
 
         let groupByKeyData = groupByKey(items, groupByKeyValue);

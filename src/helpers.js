@@ -52,21 +52,29 @@ function createRequests(requestOptions, pseudoUrls) {
     return requests;
 }
 
-async function addRequestsToQueue({ requests, requestQueue, maxRequestsPerStartUrl, requestsPerStartUrlCounter, startUrl }) {
+function getURLextension(url) {
+    return url.split(/[#?]/)[0].split('.').pop().trim();
+}
+
+async function addRequestsToQueue({ requests, requestQueue, maxRequestsPerStartUrl, requestsPerStartUrlCounter, startUrl, noRetry=true }) {
     for (const request of requests) {
-        if (maxRequestsPerStartUrl) {
-            if (requestsPerStartUrlCounter[startUrl].counter < maxRequestsPerStartUrl) {
-                request.userData.startUrl = startUrl;
-                const { wasAlreadyPresent } = await requestQueue.addRequest(request);
-                if (!wasAlreadyPresent) {
-                    requestsPerStartUrlCounter[startUrl].counter++;
+        let URLextension = getURLextension(request.url);
+        if (URLextension !== "pdf") {
+            if (noRetry) request.noRetry = true;
+            if (maxRequestsPerStartUrl) {
+                if (requestsPerStartUrlCounter[startUrl].counter < maxRequestsPerStartUrl) {
+                    request.userData.startUrl = startUrl;
+                    const { wasAlreadyPresent } = await requestQueue.addRequest(request);
+                    if (!wasAlreadyPresent) {
+                        requestsPerStartUrlCounter[startUrl].counter++;
+                    }
+                } else if (!requestsPerStartUrlCounter[startUrl].wasLogged) {
+                    log.warning(`Enqueued max pages for start URL: ${startUrl}, will not enqueue any more`);
+                    requestsPerStartUrlCounter[startUrl].wasLogged = true;
                 }
-            } else if (!requestsPerStartUrlCounter[startUrl].wasLogged) {
-                log.warning(`Enqueued max pages for start URL: ${startUrl}, will not enqueue any more`);
-                requestsPerStartUrlCounter[startUrl].wasLogged = true;
+            } else {
+                await requestQueue.addRequest(request);
             }
-        } else {
-            await requestQueue.addRequest(request);
         }
     }
 }

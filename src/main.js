@@ -11,7 +11,7 @@ const PAGE_GOTO_TIMEOUT_SECS = 200;
 const WAIT_FOR_BODY_SECS = 60;
 
 Apify.main(async () => {
-    for (let i = 0; i < 1; i++) {
+
         
         const input = await Apify.getValue('INPUT');
         if (!input) throw new Error('There is no input!');
@@ -26,9 +26,11 @@ Apify.main(async () => {
             maxRequests,
             maxRequestsPerStartUrl,
             numberURLS,
+            runs
         } = input;
 
-
+    for (let i = 0; i < runs; i++) {
+        log.info("Run number: " + i.toString());
 
         // Object with startUrls as keys and counters as values
         const requestsPerStartUrlCounter = (await Apify.getValue('STATE-REQUESTS-PER-START-URL')) || {};
@@ -76,6 +78,7 @@ Apify.main(async () => {
                     };
                 }
             }
+            req.noRetry = true;
         });
 
         const proxyConfiguration = await Apify.createProxyConfiguration(proxyConfig);
@@ -95,6 +98,9 @@ Apify.main(async () => {
             browserPoolOptions: {
                 useFingerprints: true,
             },
+            navigationTimeoutSecs: 10,
+            handlePageTimeoutSecs: 10,
+            maxRequestRetries: 1,
             handlePageFunction: async ({ page, request }) => {
                 log.info(`Processing ${request.url}`);
 
@@ -162,7 +168,7 @@ Apify.main(async () => {
                 // msih end
             },
             handleFailedRequestFunction: async ({ request }) => {
-                log.error(`Request ${request.url} failed 4 times`);
+                log.error(`Request ${request.url} failed ${maxRequestRetries}`);
             },
             gotoFunction: async ({ page, request }) => {
                 // Block resources such as images and CSS files, to increase crawling speed
