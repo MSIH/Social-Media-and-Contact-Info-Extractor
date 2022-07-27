@@ -26,9 +26,10 @@ Apify.main(async () => {
             maxRequests,
             maxRequestsPerStartUrl,
             numberURLS,
-            runs
+            runs,
+            maxRequestRetries
         } = input;
-
+    
     for (let i = 0; i < runs; i++) {
         log.info("Run number: " + i.toString());
 
@@ -100,7 +101,7 @@ Apify.main(async () => {
             },
             navigationTimeoutSecs: 10,
             handlePageTimeoutSecs: 10,
-            maxRequestRetries: 1,
+            maxRequestRetries: maxRequestRetries,
             handlePageFunction: async ({ page, request }) => {
                 log.info(`Processing ${request.url}`);
 
@@ -199,7 +200,7 @@ Apify.main(async () => {
         const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
         await jsonDataStorage.setValue(datasetTitle + 'raw', items);
    
-        let grouppedData = await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage);
+        let grouppedData = await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage, datasetTitle);
         await msih.updateWebSite(items, 'startUrl');
         await msih.saveSocial(grouppedData)
 
