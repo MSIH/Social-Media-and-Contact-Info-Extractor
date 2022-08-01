@@ -263,17 +263,15 @@ module.exports = {
     },
 
 
-    deleteRequestListAndQueue: async (requestList, requestQueue,statIndex) => {
-        // delete RequestList bin file
-        //  console.log(requestList.persistRequestsKey);
+    deleteRequestListAndQueue: async (requestList2, requestQueue2, statIndex) => {
+
         const store = await Apify.openKeyValueStore();
-        if (requestList.persistRequestsKey !== undefined) {
-            //    console.log("key is valid");  
-            await store.setValue(requestList.persistRequestsKey, null);
+        for (let i=0; i < 1000; i++) {
+            await store.setValue("SDK_CRAWLER_STATISTICS_" + i.toString(), null);
         }
-        await store.setValue("SDK_CRAWLER_STATISTICS_" + statIndex.toString(), null);
         await store.setValue("SDK_SESSION_POOL_STATE", null);
         await store.setValue("STATE-REQUESTS-PER-START-URL", null);
+        const requestQueue = await Apify.openRequestQueue();
         await requestQueue.drop();
         log.info('Delete Request Queue Database and Crawl Meta Files');
     },

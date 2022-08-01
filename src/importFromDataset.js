@@ -25,12 +25,12 @@ Apify.main(async () => {
     let datasetTitle = "20220727052129"
     const resultsDataset = await Apify.openDataset(); //datasetTitle
     let datadir = process.env.INIT_CWD + "/" + process.env.APIFY_LOCAL_STORAGE_DIR + "/datasets"
-   // console.log(datadir);  //localStorageDir
-   console.log(getDirectories(datadir));  //localStorageDir
+    // console.log(datadir);  //localStorageDir
+    console.log(getDirectories(datadir));  //localStorageDir
     let datadirectories = getDirectories(datadir);
-    for (datasetTitle of datadirectories){   
+    for (datasetTitle of datadirectories) {
         console.log(datadir + "/" + datasetTitle);
-       
+
         const resultsDataset = await Apify.openDataset(datasetTitle);
 
         const { items } = await resultsDataset.getData();
@@ -41,9 +41,10 @@ Apify.main(async () => {
         let grouppedData = await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage, datasetTitle);
         await msih.updateWebSite(items, 'startUrl');
         await msih.saveSocial(grouppedData)
+        await resultsDataset.drop();
 
-        //await msih.deleteRequestListAndQueue(requestList, requestQueue, i);
-       await resultsDataset.drop();
         // MSIH end
     }
+
+    await msih.deleteRequestListAndQueue(null, null, 0);
 });
