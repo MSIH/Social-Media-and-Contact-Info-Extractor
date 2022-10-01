@@ -12,24 +12,24 @@ const WAIT_FOR_BODY_SECS = 60;
 
 Apify.main(async () => {
 
+        
+        const input = await Apify.getValue('INPUT');
+        if (!input) throw new Error('There is no input!');
 
-    const input = await Apify.getValue('INPUT');
-    if (!input) throw new Error('There is no input!');
-
-    const {
-        startUrls,
-        proxyConfig,
-        sameDomain,
-        maxDepth,
-        considerChildFrames,
-        // These are total (kept naming for backward compatibillity)
-        maxRequests,
-        maxRequestsPerStartUrl,
-        numberURLS,
-        runs,
-        maxRequestRetries
-    } = input;
-
+        const {
+            startUrls,
+            proxyConfig,
+            sameDomain,
+            maxDepth,
+            considerChildFrames,
+            // These are total (kept naming for backward compatibillity)
+            maxRequests,
+            
+            numberURLS,
+            runs,
+            maxRequestRetries
+        } = input;
+    const maxRequestsPerStartUrl =1
     for (let i = 0; i < runs; i++) {
         log.info("Run number: " + i.toString());
 
@@ -46,22 +46,23 @@ Apify.main(async () => {
 
         const requestQueue = await Apify.openRequestQueue();
         // const requestList = await Apify.openRequestList('start-urls', normalizeUrls(startUrls));
-
+    
         // msih start
         // create dataset for data
         const resultsDataset = await msih.createDatasetWithDateTitle();
         //console.dir(startUrls);
         let URLSfromDatabase = startUrls;
         if (!startUrls) {
-            URLSfromDatabase = await msih.getURLSfromDatabase(numberURLS);
+            let sqlquery = "SELECT * FROM PriceLocal.Vendors where website like '%facebook.com%' limit 100"
+            URLSfromDatabase = await msih.getURLSfromDatabase(numberURLS, sqlquery);
         }
-        const requestList = await Apify.openRequestList(null, URLSfromDatabase);
+        const requestList = await Apify.openRequestList('facebook', URLSfromDatabase);
 
-        /*       if (proxyConfig) {
-                  proxyConfig = {
-                      proxyUrls: proxyConfig
-                  }
-              } */
+  /*       if (proxyConfig) {
+            proxyConfig = {
+                proxyUrls: proxyConfig
+            }
+        } */
         // msih end
 
         requestList.requests.forEach((req) => {
@@ -102,8 +103,8 @@ Apify.main(async () => {
             navigationTimeoutSecs: 10,
             handlePageTimeoutSecs: 10,
             maxRequestRetries: maxRequestRetries,
-            handlePageFunction: async ({ proxyInfo, page, request }) => {
-                log.info(`Processing ${request.url} Proxy: ${ proxyInfo.url }`);
+            handlePageFunction: async ({ page, request }) => {
+                log.info(`Processing ${request.url}`);
 
                 // Wait for body tag to load
                 await page.waitForSelector('body', {
@@ -168,10 +169,10 @@ Apify.main(async () => {
                 // await msih.getURLSfromDatabase(requestQueue);
                 // msih end
             },
-            handleFailedRequestFunction: async ({ proxyInfo, request }) => {
-                log.error(`Request ${request.url} failed ${maxRequestRetries} Proxy: ${proxyInfo.url} `);
+            handleFailedRequestFunction: async ({ request }) => {
+                log.error(`Request ${request.url} failed ${maxRequestRetries}`);
             },
-            /* gotoFunction: async ({ page, request }) => {
+            gotoFunction: async ({ page, request }) => {
                 // Block resources such as images and CSS files, to increase crawling speed
                 await Apify.utils.puppeteer.blockRequests(page);
 
@@ -179,61 +180,7 @@ Apify.main(async () => {
                     timeout: PAGE_GOTO_TIMEOUT_SECS * 1000,
                     waitUntil: 'domcontentloaded',
                 });
-            }, */
-           /* preNavigationHooks: [
-                async (crawlingContext, gotoOptions) => {
-                    const { request } = crawlingContext;
-                    if (request.Url.includes("facebook")) {
-                        log.warning("Skipping request URl containing facebook")
-                        return
-                    }
-                }
-            ]*/
-            preNavigationHooks: [async ({ request, page }) => {
-                // Block unnecessary file requests
-                //console.dir(request)
-                if (request.url.includes("facebook")) {
-                    log.warning("Skipping request URl containing facebook")
-                    request.abort()
-                }
-                await Apify.utils.puppeteer.blockRequests(page, {
-                    // choosle pattern you want to block  
-                    extraUrlPatterns: [
-                        '.pdf',
-                        '.css',
-                        '.jpg',
-                        '.jpeg',
-                        '.png',
-                        '.svg',
-                        '.webp',
-                        '.gif',
-                        'data:image*',
-                        '*beacon.js',
-                        '*gpt.js',
-                        '.woff',
-                        '.pdf',
-                        '.zip',
-                        '.ico',
-                        '.woff',
-                        '.woff2',
-                        '*googleapis*',
-                        '*google.com/ads*',
-                        '*analytics*',
-                        '*ads-by-google*',
-                        '*doubleclick.net*',
-                        '*bing.com*',
-                        '*twitter.com*',
-                        '*fonts.gstatic*',
-                        '*smartlock.google*',
-                        '*facebook*',
-                        '*perimeterx*',
-                        '*adsrvr*',
-                        '*api/identity*',
-                        '*metrics/rum*',
-                    ],
-                });
-            }],
-
+            },
         };
 
         // Limit requests
@@ -248,17 +195,17 @@ Apify.main(async () => {
         log.info(`Crawl finished`);
 
         // MSIH start
-        await msih.getStats(input, i);
+        await msih.getStats(input,i);
         const { items } = await resultsDataset.getData();
         console.info('Save data to folder jsonDataStorage/' + datasetTitle + 'raw');
         const jsonDataStorage = await Apify.openKeyValueStore('jsonDataStorage');
         await jsonDataStorage.setValue(datasetTitle + 'raw', items);
-
+   
         let grouppedData = await msih.groupByKeyUniueValuesAndSave(items, 'startUrl', jsonDataStorage, datasetTitle);
         await msih.updateWebSite(items, 'startUrl');
         await msih.saveSocial(grouppedData)
 
-        await msih.deleteRequestListAndQueue(requestList, requestQueue, i);
+        await msih.deleteRequestListAndQueue(requestList, requestQueue,i);
         await resultsDataset.drop();
         // MSIH end
 

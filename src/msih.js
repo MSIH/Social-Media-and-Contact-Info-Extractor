@@ -93,8 +93,9 @@ module.exports = {
         let pool = getPool();
 
         let random = Math.floor(Math.random() * 1234567);
-        let sql = "SELECT website, placeid FROM PriceLocal.Vendors \
-            WHERE NOT website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;
+        let sql = sqlcode || "SELECT website, placeid FROM PriceLocal.Vendors \
+            WHERE NOT website = 'none' AND SocialSearchDate < "+ getDateYYYYMMDD() + " ORDER BY id LIMIT " + random + "," + limitSize;        
+   
         log.info(sql);
         try {
             const [result, fields] = await pool.query(sql);

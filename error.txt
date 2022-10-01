@@ -1,0 +1,47 @@
+INFO  Processing https://eu.donaldsonvillechief.com/go-comics/
+/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/puppeteer/common/assert.js:26
+        throw new Error(message);
+              ^
+
+Error: We either navigate top level or have old version of the navigated frame
+    at assert (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/puppeteer/common/assert.js:26:15)
+    at FrameManager._onFrameNavigated (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/puppeteer/common/FrameManager.js:256:32)
+    at /home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/puppeteer/common/FrameManager.js:65:18
+    at /home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/vendor/mitt/src/index.js:51:62
+    at Array.map (<anonymous>)
+    at Object.emit (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/vendor/mitt/src/index.js:51:43)
+    at CDPSession.emit (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/puppeteer/common/EventEmitter.js:72:22)
+    at CDPSession._onMessage (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/puppeteer/common/Connection.js:249:18)
+    at Connection._onMessage (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/puppeteer/common/Connection.js:117:25)
+    at WebSocket.<anonymous> (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/puppeteer/lib/cjs/puppeteer/node/NodeWebSocketTransport.js:13:32)
+
+
+    /home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/tough-cookie/lib/cookie.js:827
+              : this[prop].toISOString();
+                           ^
+
+TypeError: Cannot read properties of undefined (reading 'toISOString')
+    at Cookie.toJSON (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/tough-cookie/lib/cookie.js:827:28)
+    at /home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/tough-cookie/lib/cookie.js:1450:52
+    at Array.map (<anonymous>)
+    at /home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/tough-cookie/lib/cookie.js:1448:36
+    at MemoryCookieStore.getAllCookies (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/tough-cookie/lib/memstore.js:173:5)
+
+
+     SyntaxError: Unexpected token } in JSON at position 93667
+      at JSON.parse (<anonymous>)
+      at maybeParseBody (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/@apify/storage-local/dist/body_parser.js:42:16)
+      at KeyValueStoreClient.getRecord (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/@apify/storage-local/dist/resource_clients/key_value_store.js:180:61)
+      at async KeyValueStore.getValue (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/apify/build/storages/key_value_store.js:160:24)
+      at async /home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/src/main.js:37:45
+      at async run (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/apify/build/actor.js:182:13)
+
+INFO  Run number: 123
+ERROR 
+  SyntaxError: Unexpected token L in JSON at position 45124
+      at JSON.parse (<anonymous>)
+      at maybeParseBody (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/@apify/storage-local/dist/body_parser.js:42:16)
+      at KeyValueStoreClient.getRecord (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/@apify/storage-local/dist/resource_clients/key_value_store.js:180:61)
+      at async KeyValueStore.getValue (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/apify/build/storages/key_value_store.js:160:24)
+      at async /home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/src/main.js:37:45
+      at async run (/home/msihadmin/Downloads/repo/Social-Media-and-Contact-Info-Extractor/node_modules/apify/build/actor.js:182:13)

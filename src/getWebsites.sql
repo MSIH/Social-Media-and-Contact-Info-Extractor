@@ -1,0 +1,1 @@
+ SELECT id, Website, SocialSearchDate FROM PriceLocal.Vendors WHERE NOT Website = 'none' AND SocialSearchDate > 20220724 order by Website -- LIMIT  4356,50 

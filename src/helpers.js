@@ -65,6 +65,7 @@ async function addRequestsToQueue({ requests, requestQueue, maxRequestsPerStartU
                 if (requestsPerStartUrlCounter[startUrl].counter < maxRequestsPerStartUrl) {
                     request.userData.startUrl = startUrl;
                     const { wasAlreadyPresent } = await requestQueue.addRequest(request);
+                    log.info(`Queuing ${request.url}`);
                     if (!wasAlreadyPresent) {
                         requestsPerStartUrlCounter[startUrl].counter++;
                     }
@@ -74,6 +75,7 @@ async function addRequestsToQueue({ requests, requestQueue, maxRequestsPerStartU
                 }
             } else {
                 await requestQueue.addRequest(request);
+                log.info(`Queuing ${request.url}`);
             }
         }
     }
